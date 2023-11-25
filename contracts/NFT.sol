@@ -31,26 +31,32 @@ contract NFT is ERC721Enumerable, Ownable {
     }
 
     function mint(uint256 _mintAmount) public payable {
-        // Only allow minting after specified time
-        require(block.timestamp >= allowMintingOn);
-        // Must mint at least 1 token
-        require(_mintAmount > 0);
-        // Require enough payment
-        require(msg.value >= cost * _mintAmount);
+    // Only allow minting after specified time
+    // require(block.timestamp >= allowMintingOn, "Timestamp Require problem");
+    // Must mint at least 1 token
+    // require(_mintAmount > 0, "mintAmount Require problem");
 
-        uint256 supply = totalSupply();
+    // Debugging: Print out relevant information
+    emit Debug(msg.value, cost, _mintAmount);
 
-        // Do not let them mint more tokens than available
-        require(supply + _mintAmount <= maxSupply);
+    // Require enough payment
+    require(msg.value >= cost * _mintAmount, "payment Require problem");
 
-        // Create tokens
-        for(uint256 i = 1; i <= _mintAmount; i++) {
-            _safeMint(msg.sender, supply + i);
-        }
+    uint256 supply = totalSupply();
 
-        // Emit event
-        emit Mint(_mintAmount, msg.sender);
+    // Do not let them mint more tokens than available
+    // require(supply + _mintAmount <= maxSupply, "maxSupply Require problem");
+
+    // Create tokens
+    for (uint256 i = 1; i <= _mintAmount; i++) {
+        _safeMint(msg.sender, supply + i);
     }
+
+    // Emit event
+    emit Mint(_mintAmount, msg.sender);
+}
+
+event Debug(uint256 msgValue, uint256 cost, uint256 mintAmount);
 
     // Return metadata IPFS url
     // EG: 'ipfs://QmQ2jnDYecFhrf3asEWjyjZRX1pZSsNWG3qHzmNDvXa9qg/1.json'
