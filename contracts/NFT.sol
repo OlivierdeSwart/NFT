@@ -12,6 +12,15 @@ contract NFT is ERC721Enumerable, Ownable {
     uint256 public cost;
     uint256 public maxSupply;
     uint256 public allowMintingOn;
+    bool public pauseStatus = false;
+
+    struct Whitelist {
+        uint256 id;
+        address allowedMinter;
+    }
+
+    uint256 public whitelistCount = 0;
+    mapping(uint256 => Whitelist) public whitelist;
 
     event Mint(uint256 amount, address minter);
     event Withdraw(uint256 amount, address owner);
@@ -23,29 +32,51 @@ contract NFT is ERC721Enumerable, Ownable {
         uint256 _maxSupply,
         uint256 _allowMintingOn,
         string memory _baseURI
+        // ,
+        // bool _pauseStatus
     ) ERC721(_name, _symbol) {
         cost = _cost;
         maxSupply = _maxSupply;
         allowMintingOn = _allowMintingOn;
         baseURI = _baseURI;
+        // pauseStatus = _pauseStatus;
     }
 
-    function mint(uint256 _mintAmount) public payable {
+    modifier onlyWhitelisted() {
+        bool isWhitelisted = false;
+
+        // Check if the caller's address is in the whitelist
+        for (uint256 i = 1; i <= whitelistCount; i++) {
+            if (whitelist[i].allowedMinter == msg.sender) {
+                isWhitelisted = true;
+                break;
+            }
+        }
+        
+        // Only allow whitelisted addresses to access function
+        require(isWhitelisted, "Caller is not whitelisted");
+        _;
+    }
+
+    function mint(uint256 _mintAmount) public payable onlyWhitelisted {
+
     // Only allow minting after specified time
-    // require(block.timestamp >= allowMintingOn, "Timestamp Require problem");
+    require(block.timestamp >= allowMintingOn, "Timestamp Require problem");
     // Must mint at least 1 token
-    // require(_mintAmount > 0, "mintAmount Require problem");
+    require(_mintAmount > 0, "mintAmount Require problem");
 
     // Debugging: Print out relevant information
     emit Debug(msg.value, cost, _mintAmount);
 
     // Require enough payment
     require(msg.value >= cost * _mintAmount, "payment Require problem");
+    // require(uint256(msg.value) >= uint256(cost) * uint256(_mintAmount), "payment Require problem");
+
 
     uint256 supply = totalSupply();
 
     // Do not let them mint more tokens than available
-    // require(supply + _mintAmount <= maxSupply, "maxSupply Require problem");
+    require(supply + _mintAmount <= maxSupply, "maxSupply Require problem");
 
     // Create tokens
     for (uint256 i = 1; i <= _mintAmount; i++) {
@@ -93,6 +124,22 @@ event Debug(uint256 msgValue, uint256 cost, uint256 mintAmount);
 
     function setCost(uint256 _newCost) public onlyOwner {
         cost = _newCost;
+    }
+
+    function setPauseStatus(bool _pauseStatus) public onlyOwner {
+        pauseStatus = _pauseStatus;
+    }
+
+    function createWhitelistEntry(
+        address _allowedMinter
+    ) public onlyOwner {
+
+        whitelistCount++;
+
+        whitelist[whitelistCount] = Whitelist(
+            whitelistCount,
+            _allowedMinter
+        );
     }
 
 }
